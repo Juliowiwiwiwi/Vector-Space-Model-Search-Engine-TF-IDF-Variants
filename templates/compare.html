@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}Multi-Scheme Comparative Analysis | VSM IR Engine{% endblock %}
+
+{% block content %}
+<div class="hero-section" style="margin-bottom:28px;">
+    <div class="project-kicker">
+        <span class="dot"></span> Empirical Scheme Comparison
+    </div>
+    <h1 class="hero-title" style="font-size:2.4rem;">
+        TF-IDF Variant <span class="highlight-red">Scheme Comparison</span>
+    </h1>
+    <p class="hero-subtitle">
+        Analyze how document rankings and cosine similarity scores vary between Natural (ntc), Logarithmic (ltc), Augmented (atc), and Binary (btc) weighting schemes.
+    </p>
+</div>
+
+<!-- Comparison Query Card -->
+<div class="search-card" style="margin-bottom:30px;">
+    <form action="/compare" method="GET" class="search-form" style="gap:14px;">
+        <div class="search-bar-row">
+            <span class="search-icon">⚖️</span>
+            <input 
+                type="text" 
+                name="query" 
+                class="search-input" 
+                placeholder="Enter query to compare all 4 TF-IDF schemes..." 
+                value="{{ query }}" 
+                required
+            >
+            <button type="submit" class="search-btn">
+                <span>Compare Schemes</span>
+            </button>
+        </div>
+
+        <div class="sample-queries">
+            <span class="sample-label">Suggested comparisons:</span>
+            <a href="/compare?query=explainable+artificial+intelligence" class="sample-chip">Explainable AI</a>
+            <a href="/compare?query=deep+learning+time+series+forecasting" class="sample-chip">Time Series &amp; Deep Learning</a>
+            <a href="/compare?query=feature+selection+algorithms" class="sample-chip">Feature Selection</a>
+            <a href="/compare?query=heart+failure+clinical+data" class="sample-chip">Clinical Big Data</a>
+            <a href="/compare?query=transformers+natural+language" class="sample-chip">Transformers NLP</a>
+        </div>
+    </form>
+</div>
+
+{% if multi_results %}
+<!-- Rank Correlation Matrix -->
+<div style="margin-bottom:32px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <h3 style="font-size:1.1rem; font-weight:700;">Rank Correlation Matrix (Spearman's &rho;)</h3>
+        <span style="font-size:0.78rem; color:var(--text-dim);">&rho; = 1.0 (Identical) | &rho; = 0.0 (Uncorrelated) | &rho; = -1.0 (Inverted)</span>
+    </div>
+    <div class="correlation-strip">
+        {% for pair, rho in multi_results.correlations.items() %}
+        <div class="corr-badge">
+            <span class="corr-pair">{{ pair }}</span>
+            <span class="corr-val {% if rho >= 0.5 %}pos{% else %}neg{% endif %}">
+                {{ "%+.3f"|format(rho) }}
+            </span>
+            <span style="font-size:0.68rem; color:var(--text-dim); margin-top:2px;">
+                {% if rho > 0.7 %}Strong Positive Correlation{% elif rho > 0.3 %}Moderate Agreement{% elif rho > -0.2 %}Significant Rank Shift{% else %}Complete Rank Inversion{% endif %}
+            </span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Side-by-Side Scheme Top Ranks -->
+<div class="compare-grid" style="margin-bottom:36px;">
+    {% for sch_key, sch_data in multi_results.schemes.items() %}
+    <div class="scheme-column-card">
+        <div class="scheme-column-header">
+            <div class="scheme-column-title">
+                <span>{{ sch_data.scheme_info.name }}</span>
+                <span class="scheme-code-badge">{{ sch_data.scheme_info.code }}</span>
+            </div>
+            <div style="font-size:0.75rem; color:var(--text-dim); margin-top:4px;">
+                {{ sch_data.scheme_info.tf }}
+            </div>
+        </div>
+
+        <div class="mini-ranked-list">
+            {% if sch_data.results %}
+                {% for item in sch_data.results[:8] %}
+                <div class="mini-rank-item">
+                    <span class="mini-rank-num">#{{ item.rank }}</span>
+                    <div class="mini-rank-title" title="{{ item.title }}">
+                        Doc {{ item.doc_id }}: {{ item.title }}
+                    </div>
+                    <span class="mini-rank-score">{{ item.score }}</span>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div style="color:var(--text-dim); font-size:0.8rem; padding:10px;">No matching documents.</div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Master Comparison Matrix -->
+<div class="matrix-card" style="margin-bottom:36px;">
+    <h3 style="font-size:1.1rem; font-weight:700; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center;">
+        <span>Comprehensive Ranking Shift &amp; Score Table</span>
+        <span style="font-size:0.75rem; color:var(--green-soft); font-family:monospace;">Consensus Ranked</span>
+    </h3>
+    <table class="matrix-table">
+        <thead>
+            <tr>
+                <th style="width:70px;">Doc ID</th>
+                <th>Document Title</th>
+                <th>Research Area</th>
+                <th style="text-align:center;">Raw (ntc)</th>
+                <th style="text-align:center;">Log (ltc)</th>
+                <th style="text-align:center;">Augmented (atc)</th>
+                <th style="text-align:center;">Binary (btc)</th>
+                <th style="text-align:center;">Paper Excerpt</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in multi_results.comparison_matrix %}
+            <tr>
+                <td style="font-family:monospace; font-weight:700; color:var(--text-dim);">#{{ row.doc_id }}</td>
+                <td style="font-weight:600; color:var(--text-main); max-width:280px;">{{ row.title }}</td>
+                <td style="font-size:0.78rem; color:var(--green-soft);">{{ row.topic }}</td>
+                {% for sch in ['ntc', 'ltc', 'atc', 'btc'] %}
+                <td style="text-align:center;">
+                    {% set sch_info = row.schemes[sch] %}
+                    {% if sch_info.rank != '-' %}
+                        <div class="rank-cell {% if sch_info.rank == 1 %}rank-1{% elif sch_info.rank == 2 %}rank-2{% elif sch_info.rank == 3 %}rank-3{% endif %}">
+                            #{{ sch_info.rank }}
+                        </div>
+                        <div style="font-size:0.72rem; color:var(--text-dim); font-family:monospace;">
+                            {{ sch_info.score }}
+                        </div>
+                    {% else %}
+                        <span style="color:var(--text-dim);">-</span>
+                    {% endif %}
+                </td>
+                {% endfor %}
+                <td style="text-align:center;">
+                    <a href="#" class="btn-view-doc" data-doc-id="{{ row.doc_id }}">View</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Theoretical Analysis Insights -->
+<div style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:24px;">
+    <h3 style="font-size:1.15rem; font-weight:700; color:var(--red-soft); margin-bottom:12px;">
+        Information Retrieval Analytical Insights
+    </h3>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:18px; font-size:0.88rem; color:var(--text-muted); line-height:1.6;">
+        <div>
+            <strong style="color:var(--text-main)">1. Impact of Document Length:</strong>
+            <p style="margin-top:4px;">
+                Raw TF (ntc) tends to bias toward longer documents with high absolute term frequencies. Even with cosine normalization, a 20,000-word survey will frequently outrank a concise 3,000-word experimental paper.
+            </p>
+        </div>
+        <div>
+            <strong style="color:var(--text-main)">2. Sub-linear Damping Benefit:</strong>
+            <p style="margin-top:4px;">
+                Logarithmic TF (ltc) replaces linear growth with \(1 + \log_{10}(tf)\), acknowledging that the 20th occurrence of a term carries much less marginal information than its 1st occurrence.
+            </p>
+        </div>
+        <div>
+            <strong style="color:var(--text-main)">3. Verbosity Normalization:</strong>
+            <p style="margin-top:4px;">
+                Augmented TF (atc) dynamically dampens term counts using \(\max_t(tf)\). This levels the playing field between long surveys and short technical notes.
+            </p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+

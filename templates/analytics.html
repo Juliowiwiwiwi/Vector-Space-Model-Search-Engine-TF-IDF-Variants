@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}Corpus Analytics & SMART Guide | VSM Search Engine{% endblock %}
+
+{% block content %}
+<div class="hero-section" style="margin-bottom:28px;">
+    <div class="project-kicker">
+        <span class="dot"></span> Collection Analytics &amp; IR Reference
+    </div>
+    <h1 class="hero-title" style="font-size:2.4rem;">
+        Corpus Analytics &amp; <span class="highlight-green">SMART Notation Guide</span>
+    </h1>
+    <p class="hero-subtitle">
+        System architecture, collection statistics, and mathematical foundations of the Vector Space Model.
+    </p>
+</div>
+
+<!-- Metrics Strip -->
+<div class="metrics-strip">
+    <div class="metric-card">
+        <div class="metric-icon green">📄</div>
+        <div class="metric-details">
+            <span class="metric-value">{{ stats.num_documents }} Papers</span>
+            <span class="metric-label">Corpus Collection</span>
+        </div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-icon red">🔤</div>
+        <div class="metric-details">
+            <span class="metric-value">{{ "{:,}".format(stats.vocabulary_size) }}</span>
+            <span class="metric-label">Stemmed Vocabulary</span>
+        </div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-icon green">📊</div>
+        <div class="metric-details">
+            <span class="metric-value">{{ "{:,}".format(stats.total_words) }}</span>
+            <span class="metric-label">Total Word Tokens</span>
+        </div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-icon red">📏</div>
+        <div class="metric-details">
+            <span class="metric-value">{{ "{:,}".format(stats.avg_doc_length|int) }}</span>
+            <span class="metric-label">Avg Words / Paper</span>
+        </div>
+    </div>
+</div>
+
+<!-- SMART System Mathematical Reference Table -->
+<div class="matrix-card" style="margin-bottom:32px;">
+    <h3 style="font-size:1.15rem; font-weight:700; color:var(--text-main); margin-bottom:14px; display:flex; justify-content:space-between; align-items:center;">
+        <span>SMART Weighting Scheme Specification (Salton &amp; Buckley, 1988)</span>
+        <span style="font-size:0.75rem; color:var(--green-soft); font-family:monospace;">Standard IR Taxonomy</span>
+    </h3>
+    <table class="matrix-table">
+        <thead>
+            <tr>
+                <th>Scheme</th>
+                <th>Notation</th>
+                <th>Term Frequency (TF) Component</th>
+                <th>Document Frequency (IDF) Component</th>
+                <th>Vector Normalization</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td style="font-weight:700; color:var(--text-main);">Standard Raw TF-IDF</td>
+                <td style="font-family:monospace; color:var(--green-soft);">ntc.ntc</td>
+                <td>Natural raw count: \(tf_{t,d}\)</td>
+                <td>Standard: \(\log_{10}(N / df_t)\)</td>
+                <td>Cosine: \(1 / \sqrt{\sum w_i^2}\)</td>
+            </tr>
+            <tr>
+                <td style="font-weight:700; color:var(--text-main);">Logarithmic TF-IDF</td>
+                <td style="font-family:monospace; color:var(--green-soft);">ltc.ltc</td>
+                <td>Log-scaled: \(1 + \log_{10}(tf_{t,d})\)</td>
+                <td>Standard: \(\log_{10}(N / df_t)\)</td>
+                <td>Cosine: \(1 / \sqrt{\sum w_i^2}\)</td>
+            </tr>
+            <tr>
+                <td style="font-weight:700; color:var(--text-main);">Augmented TF-IDF</td>
+                <td style="font-family:monospace; color:var(--green-soft);">atc.atc</td>
+                <td>Double normalized: \(0.5 + 0.5 \frac{tf}{\max(tf)}\)</td>
+                <td>Standard: \(\log_{10}(N / df_t)\)</td>
+                <td>Cosine: \(1 / \sqrt{\sum w_i^2}\)</td>
+            </tr>
+            <tr>
+                <td style="font-weight:700; color:var(--text-main);">Binary / Boolean TF-IDF</td>
+                <td style="font-family:monospace; color:var(--green-soft);">btc.btc</td>
+                <td>Binary indicator: \(1\) if \(tf > 0\) else \(0\)</td>
+                <td>Standard: \(\log_{10}(N / df_t)\)</td>
+                <td>Cosine: \(1 / \sqrt{\sum w_i^2}\)</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Two-Column Layout: Top Vocabulary & Topic Distribution -->
+<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:24px; margin-bottom:32px;">
+    <!-- Top DF Terms -->
+    <div class="matrix-card">
+        <h3 style="font-size:1.05rem; font-weight:700; margin-bottom:12px;">Top Terms by Corpus Presence (DF)</h3>
+        <table class="matrix-table">
+            <thead>
+                <tr>
+                    <th>Term (Stemmed)</th>
+                    <th>Doc Freq (DF)</th>
+                    <th>Corpus Coverage</th>
+                    <th>IDF Weight</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in stats.top_df_terms %}
+                <tr>
+                    <td style="font-family:monospace; color:var(--green-soft); font-weight:600;">{{ t.term }}</td>
+                    <td>{{ t.df }} / {{ stats.num_documents }}</td>
+                    <td>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div style="flex:1; height:6px; background:rgba(255,255,255,0.06); border-radius:3px; overflow:hidden;">
+                                <div style="width:{{ (t.df / stats.num_documents * 100)|round }}%; height:100%; background:var(--green-soft);"></div>
+                            </div>
+                            <span style="font-size:0.75rem; color:var(--text-dim);">{{ (t.df / stats.num_documents * 100)|round|int }}%</span>
+                        </div>
+                    </td>
+                    <td style="font-family:monospace; color:var(--text-dim);">{{ t.idf }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Research Domains Breakdown -->
+    <div class="matrix-card">
+        <h3 style="font-size:1.05rem; font-weight:700; margin-bottom:12px;">Corpus Topic Distribution</h3>
+        <div style="display:flex; flex-direction:column; gap:12px; margin-top:14px;">
+            {% for topic, count in stats.topic_distribution.items() %}
+            <div style="background:var(--bg-deep); padding:12px 16px; border-radius:var(--radius-sm); border:1px solid var(--border-subtle);">
+                <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                    <strong style="color:var(--text-main); font-size:0.9rem;">{{ topic }}</strong>
+                    <span style="color:var(--green-soft); font-weight:700; font-family:monospace;">{{ count }} papers</span>
+                </div>
+                <div style="height:6px; background:rgba(255,255,255,0.06); border-radius:3px; overflow:hidden;">
+                    <div style="width:{{ (count / stats.num_documents * 100)|round }}%; height:100%; background:var(--red-gradient);"></div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Corpus Document Directory -->
+<div class="matrix-card">
+    <h3 style="font-size:1.15rem; font-weight:700; margin-bottom:14px;">Complete Corpus Document Index</h3>
+    <table class="matrix-table">
+        <thead>
+            <tr>
+                <th style="width:80px;">ID</th>
+                <th>Paper Title</th>
+                <th>Authors</th>
+                <th>Topic Area</th>
+                <th>Tokens</th>
+                <th style="text-align:center;">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for doc_id, doc in documents.items() %}
+            <tr>
+                <td style="font-family:monospace; font-weight:700; color:var(--green-soft);">#{{ doc_id }}</td>
+                <td style="font-weight:600; color:var(--text-main);">{{ doc.title }}</td>
+                <td style="font-size:0.8rem; color:var(--text-muted); max-width:200px;">{{ doc.authors }}</td>
+                <td style="font-size:0.8rem; color:var(--red-soft);">{{ doc.topic }}</td>
+                <td style="font-family:monospace; color:var(--text-dim);">{{ "{:,}".format(doc.word_count) }}</td>
+                <td style="text-align:center;">
+                    <a href="#" class="btn-view-doc" data-doc-id="{{ doc_id }}">Preview</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+

@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}Search Engine | Vector Space Model & TF-IDF Variants{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <div class="project-kicker">
+        <span class="dot"></span> Information Retrieval Mini Project · Manipal University
+    </div>
+    <h1 class="hero-title">
+        Vector Space Model <span class="highlight-red">Search Engine</span> &amp; <span class="highlight-green">TF-IDF Variants</span>
+    </h1>
+    <p class="hero-subtitle">
+        Empirical comparison of SMART weighting schemes (Natural, Log-frequency, Augmented, Binary) and vector cosine similarity across academic research papers.
+    </p>
+
+    <!-- Student Recognition Card -->
+    <div style="display:inline-flex; align-items:center; gap:14px; background:rgba(255,255,255,0.03); border:1px solid var(--border-subtle); padding:10px 20px; border-radius:var(--radius-pill); margin-bottom:30px;">
+        <span style="color:var(--text-dim); font-size:0.85rem;">Designed &amp; Developed by</span>
+        <strong style="color:var(--green-soft); font-size:0.95rem;">Devanarayan C S</strong>
+        <span style="color:var(--text-dim)">|</span>
+        <span style="color:var(--text-muted); font-size:0.85rem; font-family:monospace;">Roll No: 23FE10CCE00110</span>
+        <span style="color:var(--text-dim)">|</span>
+        <span style="color:var(--red-soft); font-size:0.85rem;">CCE 4th Year</span>
+    </div>
+</div>
+
+<!-- Search Input Card -->
+<div class="search-card">
+    <form action="/" method="POST" class="search-form">
+        <div class="search-bar-row">
+            <span class="search-icon">🔍</span>
+            <input 
+                type="text" 
+                name="query" 
+                class="search-input" 
+                placeholder="Enter search query (e.g. explainable artificial intelligence, time series, feature selection)..." 
+                value="{{ query|default('') }}" 
+                required 
+                autofocus
+            >
+            <button type="submit" class="search-btn">
+                <span>Rank &amp; Search</span>
+                <span>➔</span>
+            </button>
+        </div>
+
+        <!-- Scheme Selection -->
+        <div class="scheme-selector">
+            <span class="scheme-label">Weighting Scheme:</span>
+
+            <div class="scheme-radio-pill multi">
+                <input type="radio" id="sch_multi" name="scheme" value="multi" {% if scheme == 'multi' or not scheme %}checked{% endif %}>
+                <label for="sch_multi">⚡ Multi-Scheme Compare (All 4)</label>
+            </div>
+
+            <div class="scheme-radio-pill">
+                <input type="radio" id="sch_ntc" name="scheme" value="ntc" {% if scheme == 'ntc' %}checked{% endif %}>
+                <label for="sch_ntc">ntc (Standard Raw TF)</label>
+            </div>
+
+            <div class="scheme-radio-pill">
+                <input type="radio" id="sch_ltc" name="scheme" value="ltc" {% if scheme == 'ltc' %}checked{% endif %}>
+                <label for="sch_ltc">ltc (Logarithmic TF)</label>
+            </div>
+
+            <div class="scheme-radio-pill">
+                <input type="radio" id="sch_atc" name="scheme" value="atc" {% if scheme == 'atc' %}checked{% endif %}>
+                <label for="sch_atc">atc (Augmented TF)</label>
+            </div>
+
+            <div class="scheme-radio-pill">
+                <input type="radio" id="sch_btc" name="scheme" value="btc" {% if scheme == 'btc' %}checked{% endif %}>
+                <label for="sch_btc">btc (Binary TF)</label>
+            </div>
+        </div>
+
+        <!-- Sample Query Chips -->
+        <div class="sample-queries">
+            <span class="sample-label">Try sample queries:</span>
+            <a href="#" class="sample-chip" data-query="explainable artificial intelligence">Explainable Artificial Intelligence</a>
+            <a href="#" class="sample-chip" data-query="deep learning time series forecasting">Time Series Forecasting</a>
+            <a href="#" class="sample-chip" data-query="feature selection algorithm evaluation">Feature Selection Algorithms</a>
+            <a href="#" class="sample-chip" data-query="transformers natural language processing">Transformers NLP</a>
+            <a href="#" class="sample-chip" data-query="chronic heart failure clinical big data">Heart Failure Diagnosis</a>
+        </div>
+    </form>
+</div>
+
+<!-- Metrics Strip -->
+<div class="metrics-strip">
+    <div class="metric-card">
+        <div class="metric-icon green">📄</div>
+        <div class="metric-details">
+            <span class="metric-value">{{ stats.num_documents }}</span>
+            <span class="metric-label">Corpus Research Papers</span>
+        </div>
+    </div>
+
+    <div class="metric-card">
+        <div class="metric-icon red">📚</div>
+        <div class="metric-details">
+            <span class="metric-value">{{ "{:,}".format(stats.vocabulary_size) }}</span>
+            <span class="metric-label">Stemmed Vocabulary Terms</span>
+        </div>
+    </div>
+
+    <div class="metric-card">
+        <div class="metric-icon green">⚖️</div>
+        <div class="metric-details">
+            <span class="metric-value">4 Schemes</span>
+            <span class="metric-label">SMART TF-IDF Variants</span>
+        </div>
+    </div>
+
+    <div class="metric-card">
+        <div class="metric-icon red">⚡</div>
+        <div class="metric-details">
+            <span class="metric-value">&lt; 5 ms</span>
+            <span class="metric-label">Vector Retrieval Latency</span>
+        </div>
+    </div>
+</div>
+
+<!-- Theoretical Overview Cards -->
+<div style="margin-top: 40px;">
+    <div style="text-align:center; margin-bottom:24px;">
+        <h2 style="font-size:1.4rem; font-weight:700;">TF-IDF Variant Schemes in Information Retrieval</h2>
+        <p style="color:var(--text-muted); font-size:0.9rem;">How different weighting functions impact document relevance and ranking</p>
+    </div>
+
+    <div class="compare-grid">
+        <div class="scheme-column-card">
+            <div class="scheme-column-header">
+                <div class="scheme-column-title">
+                    <span>Standard Raw TF-IDF</span>
+                    <span class="scheme-code-badge">ntc.ntc</span>
+                </div>
+            </div>
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:12px;">
+                Classical Salton model using raw frequency \(tf_{t,d}\) and \(\log_{10}(N / df_t)\). Susceptible to high term repetitions in verbose documents.
+            </p>
+            <div style="font-size:0.75rem; color:var(--green-soft); font-family:monospace; background:rgba(0,0,0,0.3); padding:8px; border-radius:6px;">
+                w = tf * log10(N / df)
+            </div>
+        </div>
+
+        <div class="scheme-column-card">
+            <div class="scheme-column-header">
+                <div class="scheme-column-title">
+                    <span>Logarithmic TF-IDF</span>
+                    <span class="scheme-code-badge">ltc.ltc</span>
+                </div>
+            </div>
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:12px;">
+                SMART Cornell benchmark using \(1 + \log_{10}(tf)\). Sub-linear scaling prevents single repeated words from overwhelming other relevant terms.
+            </p>
+            <div style="font-size:0.75rem; color:var(--green-soft); font-family:monospace; background:rgba(0,0,0,0.3); padding:8px; border-radius:6px;">
+                w = (1 + log10(tf)) * idf
+            </div>
+        </div>
+
+        <div class="scheme-column-card">
+            <div class="scheme-column-header">
+                <div class="scheme-column-title">
+                    <span>Augmented TF-IDF</span>
+                    <span class="scheme-code-badge">atc.atc</span>
+                </div>
+            </div>
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:12px;">
+                Double normalization factoring maximum term frequency \(\max_t(tf)\). Effectively prevents long papers from biasing ranking scores.
+            </p>
+            <div style="font-size:0.75rem; color:var(--green-soft); font-family:monospace; background:rgba(0,0,0,0.3); padding:8px; border-radius:6px;">
+                w = (0.5 + 0.5 * tf / max_tf) * idf
+            </div>
+        </div>
+
+        <div class="scheme-column-card">
+            <div class="scheme-column-header">
+                <div class="scheme-column-title">
+                    <span>Binary / Boolean TF-IDF</span>
+                    <span class="scheme-code-badge">btc.btc</span>
+                </div>
+            </div>
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:12px;">
+                Binary indicator (1 if present, 0 if absent). Evaluates document relevance purely on concept coverage rather than repetition frequency.
+            </p>
+            <div style="font-size:0.75rem; color:var(--green-soft); font-family:monospace; background:rgba(0,0,0,0.3); padding:8px; border-radius:6px;">
+                w = (1.0 if tf > 0 else 0) * idf
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

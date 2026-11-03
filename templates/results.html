@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+
+{% block title %}Search Results | {{ query }} - VSM Engine{% endblock %}
+
+{% block content %}
+<!-- Compact Refine Search Card -->
+<div class="search-card" style="padding:16px 20px; margin-bottom:24px;">
+    <form action="/" method="POST" class="search-form" style="gap:12px;">
+        <div class="search-bar-row">
+            <span class="search-icon">🔍</span>
+            <input 
+                type="text" 
+                name="query" 
+                class="search-input" 
+                placeholder="Enter search query..." 
+                value="{{ query }}" 
+                required
+            >
+            <button type="submit" class="search-btn" style="padding:8px 20px;">
+                <span>Search</span>
+            </button>
+        </div>
+
+        <div class="scheme-selector">
+            <span class="scheme-label">Scheme:</span>
+            <div class="scheme-radio-pill multi">
+                <input type="radio" id="res_multi" name="scheme" value="multi" {% if scheme == 'multi' %}checked{% endif %} onchange="this.form.submit()">
+                <label for="res_multi">⚡ Multi-Scheme (All 4)</label>
+            </div>
+            <div class="scheme-radio-pill">
+                <input type="radio" id="res_ntc" name="scheme" value="ntc" {% if scheme == 'ntc' %}checked{% endif %} onchange="this.form.submit()">
+                <label for="res_ntc">ntc (Raw TF)</label>
+            </div>
+            <div class="scheme-radio-pill">
+                <input type="radio" id="res_ltc" name="scheme" value="ltc" {% if scheme == 'ltc' %}checked{% endif %} onchange="this.form.submit()">
+                <label for="res_ltc">ltc (Log TF)</label>
+            </div>
+            <div class="scheme-radio-pill">
+                <input type="radio" id="res_atc" name="scheme" value="atc" {% if scheme == 'atc' %}checked{% endif %} onchange="this.form.submit()">
+                <label for="res_atc">atc (Augmented TF)</label>
+            </div>
+            <div class="scheme-radio-pill">
+                <input type="radio" id="res_btc" name="scheme" value="btc" {% if scheme == 'btc' %}checked{% endif %} onchange="this.form.submit()">
+                <label for="res_btc">btc (Binary TF)</label>
+            </div>
+        </div>
+    </form>
+</div>
+
+{% if scheme == 'multi' %}
+    <!-- MULTI-SCHEME COMPARISON VIEW -->
+    <div class="results-header">
+        <div>
+            <h2 class="results-title">
+                Multi-Scheme Comparative Analysis
+                <span class="badge-scheme">All 4 SMART Schemes</span>
+            </h2>
+            <div style="font-size:0.85rem; color:var(--text-muted); margin-top:4px;">
+                Query: "<strong style="color:var(--text-main);">{{ query }}</strong>" &nbsp;•&nbsp; 
+                Stemmed tokens: 
+                {% for t in multi_results.query_tokens %}
+                    <span style="font-family:monospace; color:var(--green-soft);">{{ t }}</span>{% if not loop.last %}, {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        <div class="results-actions">
+            <span style="font-size:0.85rem; color:var(--text-dim);">Retrieved across {{ multi_results.total_unique_docs }} documents</span>
+        </div>
+    </div>
+
+    <!-- Spearman Correlation Strip -->
+    <div style="margin-bottom:24px;">
+        <h4 style="font-size:0.85rem; color:var(--text-muted); text-transform:uppercase; margin-bottom:10px;">
+            Rank Correlation Analysis (Spearman's &rho;)
+        </h4>
+        <div class="correlation-strip">
+            {% for pair, rho in multi_results.correlations.items() %}
+            <div class="corr-badge">
+                <span class="corr-pair">{{ pair }}</span>
+                <span class="corr-val {% if rho >= 0.5 %}pos{% else %}neg{% endif %}">
+                    {{ "%+.3f"|format(rho) }}
+                </span>
+                <span style="font-size:0.68rem; color:var(--text-dim);">
+                    {% if rho > 0.7 %}High Agreement{% elif rho > 0.3 %}Moderate Agreement{% elif rho > -0.3 %}Rank Inversion{% else %}Strong Divergence{% endif %}
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Side-by-Side Scheme Top Ranks -->
+    <div class="compare-grid" style="margin-bottom:30px;">
+        {% for sch_key, sch_data in multi_results.schemes.items() %}
+        <div class="scheme-column-card">
+            <div class="scheme-column-header">
+                <div class="scheme-column-title">
+                    <span>{{ sch_data.scheme_info.name }}</span>
+                    <span class="scheme-code-badge">{{ sch_data.scheme_info.code }}</span>
+                </div>
+                <div style="font-size:0.75rem; color:var(--text-dim); margin-top:4px;">
+                    {{ sch_data.scheme_info.tf }}
+                </div>
+            </div>
+
+            <div class="mini-ranked-list">
+                {% if sch_data.results %}
+                    {% for item in sch_data.results[:6] %}
+                    <div class="mini-rank-item">
+                        <span class="mini-rank-num">#{{ item.rank }}</span>
+                        <div class="mini-rank-title" title="{{ item.title }}">
+                            Doc {{ item.doc_id }}: {{ item.title }}
+                        </div>
+                        <span class="mini-rank-score">{{ item.score }}</span>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div style="color:var(--text-dim); font-size:0.8rem; padding:10px;">No matching documents.</div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Master Cross-Scheme Matrix -->
+    <div class="matrix-card">
+        <h3 style="font-size:1.05rem; font-weight:700; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center;">
+            <span>Cross-Scheme Ranking &amp; Score Matrix</span>
+            <span style="font-size:0.75rem; color:var(--text-dim); font-weight:normal;">Rank / Cosine Similarity Score</span>
+        </h3>
+        <table class="matrix-table">
+            <thead>
+                <tr>
+                    <th style="width:70px;">Doc ID</th>
+                    <th>Document Title &amp; Topic</th>
+                    <th style="text-align:center;">Raw (ntc)</th>
+                    <th style="text-align:center;">Log (ltc)</th>
+                    <th style="text-align:center;">Aug (atc)</th>
+                    <th style="text-align:center;">Bin (btc)</th>
+                    <th style="text-align:center;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in multi_results.comparison_matrix %}
+                <tr>
+                    <td style="font-family:monospace; font-weight:700; color:var(--text-dim);">#{{ row.doc_id }}</td>
+                    <td>
+                        <div style="font-weight:600; color:var(--text-main);">{{ row.title }}</div>
+                        <div style="font-size:0.75rem; color:var(--green-soft);">{{ row.topic }}</div>
+                    </td>
+                    {% for sch in ['ntc', 'ltc', 'atc', 'btc'] %}
+                    <td style="text-align:center;">
+                        {% set sch_info = row.schemes[sch] %}
+                        {% if sch_info.rank != '-' %}
+                            <div class="rank-cell {% if sch_info.rank == 1 %}rank-1{% elif sch_info.rank == 2 %}rank-2{% elif sch_info.rank == 3 %}rank-3{% endif %}">
+                                #{{ sch_info.rank }}
+                            </div>
+                            <div style="font-size:0.72rem; color:var(--text-dim); font-family:monospace;">
+                                {{ sch_info.score }}
+                            </div>
+                        {% else %}
+                            <span style="color:var(--text-dim);">-</span>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                    <td style="text-align:center;">
+                        <a href="#" class="btn-view-doc" data-doc-id="{{ row.doc_id }}">View</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+{% else %}
+    <!-- SINGLE SCHEME RESULTS VIEW -->
+    <div class="results-header">
+        <div>
+            <h2 class="results-title">
+                Search Results
+                <span class="badge-scheme">{{ single_results.scheme_info.name }} ({{ single_results.scheme_info.code }})</span>
+            </h2>
+            <div style="font-size:0.85rem; color:var(--text-muted); margin-top:4px;">
+                Query: "<strong style="color:var(--text-main);">{{ query }}</strong>" &nbsp;•&nbsp; 
+                Stemmed tokens: 
+                {% for t in single_results.query_tokens %}
+                    <span style="font-family:monospace; color:var(--green-soft);">{{ t }}</span>{% if not loop.last %}, {% endif %}
+                {% endfor %}
+                &nbsp;•&nbsp; Matches: <strong style="color:var(--text-main);">{{ single_results.total_matches }}</strong>
+            </div>
+        </div>
+        <div class="results-actions">
+            <a href="/compare?query={{ query }}" class="btn-secondary btn-compare">
+                ⚖️ Compare with other 3 schemes
+            </a>
+            <a href="/" class="btn-secondary">New Search</a>
+        </div>
+    </div>
+
+    <!-- Scheme Details Callout -->
+    <div style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:12px 18px; margin-bottom:20px; font-size:0.82rem; color:var(--text-muted); display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+        <div><strong>Weighting Formula:</strong> {{ single_results.scheme_info.description }}</div>
+        <div><strong>Document TF:</strong> {{ single_results.scheme_info.tf }} &nbsp;|&nbsp; <strong>Normalization:</strong> Cosine</div>
+    </div>
+
+    {% if single_results.results %}
+    <div class="results-list">
+        {% for item in single_results.results %}
+        <div class="doc-card {% if item.rank == 1 %}top-rank{% endif %}">
+            <div class="doc-card-header">
+                <div class="doc-title-group">
+                    <span class="doc-rank-pill">Rank #{{ item.rank }} · Document ID: {{ item.doc_id }}</span>
+                    <h3 class="doc-title">{{ item.title }}</h3>
+                    <div class="doc-meta">
+                        <span>👤 {{ item.authors }}</span>
+                        <span>•</span>
+                        <span>🏷️ <strong style="color:var(--green-soft)">{{ item.topic }}</strong></span>
+                        <span>•</span>
+                        <span>📅 {{ item.year }}</span>
+                        <span>•</span>
+                        <span>📖 {{ item.source }}</span>
+                    </div>
+                </div>
+
+                <div class="doc-score-meter">
+                    <div class="score-badge">
+                        <div class="score-num">{{ item.score }}</div>
+                        <div class="score-label">Cosine Similarity</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Snippet -->
+            <div class="doc-snippet">
+                "{{ item.snippet }}"
+            </div>
+
+            <!-- Term diagnostics & actions -->
+            <div class="doc-footer">
+                <div class="term-chips-group">
+                    <span style="font-size:0.75rem; color:var(--text-dim); margin-right:4px;">Matched Terms:</span>
+                    {% for term in item.matched_terms %}
+                    <span class="term-tag">
+                        {{ term }}
+                    </span>
+                    {% endfor %}
+                </div>
+
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <a href="#" class="btn-view-doc" data-doc-id="{{ item.doc_id }}">View Full Paper</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align:center; padding:60px 20px; background:var(--bg-card); border-radius:var(--radius-md); border:1px solid var(--border-subtle);">
+        <h3 style="color:var(--red-soft); margin-bottom:8px;">No matching documents found</h3>
+        <p style="color:var(--text-muted); font-size:0.9rem; max-width:500px; margin:0 auto 16px auto;">
+            None of the stemmed query terms were indexed in the corpus for this scheme. Try broadening your search or using standard domain keywords.
+        </p>
+        <a href="/" class="btn-secondary">Return to Search</a>
+    </div>
+    {% endif %}
+{% endif %}
+
+{% endblock %}
